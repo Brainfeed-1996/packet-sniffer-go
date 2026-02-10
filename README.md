@@ -1,17 +1,42 @@
-# Packet Sniffer (Go)
+# packet-sniffer-go
 
-A professional-grade network traffic analyzer leveraging the speed of Go and the depth of libpcap.
+Local-first packet capture utility (defensive / DFIR oriented).
 
-## 📊 Flow Tracking
-The engine now includes a **Flow Tracker** that monitors network flows in real-time to identify potential DDoS patterns or large data exfiltrations.
+## Features
 
-## 🛠️ Key Capabilities
-- **BPF Filtering**: Support for Berkeley Packet Filter syntax.
-- **Protocol Decoding**: Ethernet, IPv4, TCP, UDP, and ICMP support.
-- **Flow Analysis**: Real-time connection mapping and volume alerting.
+- Live capture with **gopacket/pcap**
+- Optional **BPF filters** (e.g. `tcp and port 443`)
+- Periodic **stats** (packets, protocol counters, top flows)
+- Optional **PCAP export** (`-pcap out.pcap`)
+- Safe defaults; no exfiltration, no remote control
 
-## 🚀 Execution
+## Quick start
+
+List interfaces:
+
 ```bash
-go build -o sniffer
-sudo ./sniffer -i eth0
+go run . -list
 ```
+
+Capture on an interface with filter:
+
+```bash
+go run . -i "<iface>" -f "tcp and port 443" -stats-every 2s
+```
+
+Write to PCAP:
+
+```bash
+go run . -i "<iface>" -pcap capture.pcap
+```
+
+Stop: `Ctrl+C`.
+
+## Notes
+
+- On Windows, you typically need **Npcap** installed.
+- Interface names are platform-specific; use `-list`.
+
+## License
+
+MIT
