@@ -1,42 +1,68 @@
-# packet-sniffer-go
+# Packet Sniffer Go
 
-Local-first packet capture utility (defensive / DFIR oriented).
+A high-performance packet sniffer written in Go using the **gopacket** library.
 
-## Features
+## 🔍 Overview
 
-- Live capture with **gopacket/pcap**
-- Optional **BPF filters** (e.g. `tcp and port 443`)
-- Periodic **stats** (packets, protocol counters, top flows)
-- Optional **PCAP export** (`-pcap out.pcap`)
-- Safe defaults; no exfiltration, no remote control
+A lightweight, production-ready packet capture and analysis tool supporting:
+- Real-time packet capture on network interfaces
+- Protocol analysis (TCP, UDP, ICMP, DNS, ARP)
+- Flow tracking and statistics
+- PCAP file export
+- BPF filtering
 
-## Quick start
-
-List interfaces:
-
-```bash
-go run . -list
-```
-
-Capture on an interface with filter:
+## 🚀 Quick Start
 
 ```bash
-go run . -i "<iface>" -f "tcp and port 443" -stats-every 2s
+# List available interfaces
+./packet-sniffer-go -list
+
+# Capture on interface eth0
+./packet-sniffer-go -i eth0
+
+# Capture with BPF filter
+./packet-sniffer-go -i eth0 -f "tcp and port 443"
+
+# Export to PCAP
+./packet-sniffer-go -i eth0 -pcap output.pcap
 ```
 
-Write to PCAP:
+## 📦 Installation
 
 ```bash
-go run . -i "<iface>" -pcap capture.pcap
+git clone https://github.com/Brainfeed-1996/packet-sniffer-go.git
+cd packet-sniffer-go
+go build -o packet-sniffer-go main.go
 ```
 
-Stop: `Ctrl+C`.
+## ⚙️ Command Line Options
 
-## Notes
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-i` | auto | Network interface to capture on |
+| `-list` | false | List available interfaces |
+| `-f` | "" | BPF filter expression |
+| `-snaplen` | 1600 | Snapshot length in bytes |
+| `-promisc` | true | Promiscuous mode |
+| `-pcap` | "" | PCAP output file path |
+| `-stats-every` | 5s | Statistics reporting interval |
 
-- On Windows, you typically need **Npcap** installed.
-- Interface names are platform-specific; use `-list`.
+## 📖 Documentation
 
-## License
+- [Architecture](ARCHITECTURE.md) - System design
+- [Features](FEATURES.md) - Feature list
+- [Usage](USAGE.md) - Detailed usage guide
 
-MIT
+## 🔧 Building
+
+```bash
+# Standard build
+go build -o packet-sniffer-go main.go
+
+# With optimization
+go build -ldflags="-s -w" -o packet-sniffer-go main.go
+```
+
+## 📝 License
+
+MIT License

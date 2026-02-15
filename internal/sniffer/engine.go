@@ -146,6 +146,7 @@ func (e *Engine) Run(ctx context.Context) error {
 
 func (e *Engine) handlePacket(packet gopacket.Packet) {
 	e.stats.IncPackets()
+	e.stats.IncBytes(uint64(len(packet.Data())))
 
 	if e.pcapw != nil {
 		ci := packet.Metadata().CaptureInfo
@@ -166,6 +167,14 @@ func (e *Engine) handlePacket(packet gopacket.Packet) {
 		e.stats.IncTCP()
 		if tcp, ok := tcpLayer.(*layers.TCP); ok {
 			e.stats.ObservePorts(uint16(tcp.SrcPort), uint16(tcp.DstPort))
+			
+			// Detect HTTP/HTTPS by port
+			if tcp.SrcPort == 80 || tcp.DstPort == 80 {
+				e.stats.IncHTTP()
+			}
+			if tcp.SrcPort == 443 || tcp.DstPort == 443 {
+				e.stats.IncHTTPS()
+			}
 		}
 		return
 	}

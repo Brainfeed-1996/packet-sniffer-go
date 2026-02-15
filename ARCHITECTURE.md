@@ -1,18 +1,111 @@
+# Architecture - Packet Sniffer Go
 
-# System Architecture
+## System Overview
 
-## Overview
-This system utilizes a micro-kernel architecture designed for high availability and fault tolerance. The core components are decoupled using an event-driven message bus, allowing for independent scaling of subsystems.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Packet Sniffer Go                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐    ┌──────────────┐    ┌────────────────────┐  │
+│  │  Network    │───▶│    Engine     │───▶│   Statistics       │  │
+│  │  Interface  │    │  (Capture)    │    │   Tracker          │  │
+│  └─────────────┘    └──────────────┘    └────────────────────┘  │
+│                           │                                      │
+│                           ▼                                      │
+│                    ┌──────────────┐                              │
+│                    │   Flow       │                              │
+│                    │   Tracker    │                              │
+│                    └──────────────┘                              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## Key Components
+## Components
 
-1.  **Core Engine**: Handles business logic with O(log n) complexity for critical paths.
-2.  **Data Layer**: Abstracts storage implementations (SQL/NoSQL) behind a unified repository pattern.
-3.  **Security Module**: Implements Zero Trust principles with continuous verification.
+### Engine (`internal/sniffer/engine.go`)
 
-## Performance
-- **Throughput**: Optimized for >10k RPS on standard hardware.
-- **Latency**: P99 < 50ms via aggressive caching strategies (LRU/LFU).
+**Responsibilities:**
+- Open and configure pcap handle
+- Capture packets in real-time
+- Dispatch to protocol handlers
 
-## Deployment
-Dockerized containers orchestrated via Kubernetes for elastic scaling based on CPU/Memory metrics.
+**Key Methods:**
+```go
+func New(cfg Config) (*Engine, error)
+func (e *Engine) Run(ctx context.Context) error
+func (e *Engine) Close()
+func (e *Engine) handlePacket(packet gopacket.Packet)
+```
+
+### Config
+
+```go
+type Config struct {
+    Interface     string        // Network interface name
+    BPF           string        // BPF filter expression
+    SnapLen       int           // Snapshot length
+    Promiscuous   bool          // Promiscuous mode
+    PCAPOutPath   string        // PCAP output file
+    StatsInterval time.Duration // Stats reporting interval
+}
+```
+
+### Stats (`internal/sniffer/stats.go`)
+
+**Counters:**
+- `packets`: Total packets captured
+- `flows`: Unique flows detected
+- `tcp`, `udp`, `icmp`, `dns`, `arp`: Protocol counters
+- `topPortSrc`, `topPortDst`: Last seen ports
+
+### FlowTracker (`internal/sniffer/filters.go`)
+
+Tracks network flows and provides top-N statistics.
+
+```go
+type FlowTracker struct {
+    counts map[string]uint64
+    hotEveryN uint64
+}
+
+func (f *FlowTracker) Track(flow string)
+func (f *FlowTracker) TopN(n int) []FlowTop
+```
+
+## Packet Processing Pipeline
+
+```
+1. Capture (pcap)
+   ↓
+2. Parse (gopacket)
+   ↓
+3. Protocol Detection
+   ├─ TCP → Port tracking
+   ├─ UDP → Port tracking
+   ├─ ICMP → ICMP counter
+   ├─ DNS → DNS counter
+   └─ ARP → ARP counter
+   ↓
+4. Flow Tracking
+   ↓
+5. Statistics Update
+```
+
+## File Structure
+
+```
+packet-sniffer-go/
+├── main.go                          # CLI entry point
+├── internal/sniffer/
+│   ├── engine.go                    # Core capture engine
+│   ├── stats.go                      # Statistics tracking
+│   ├── filters.go                    # Flow tracking
+│   ├── interfaces.go                 # Interface listing
+│   ├── pcap_export.go               # PCAP file writing
+│   └── filters_test.go              # Tests
+├── README.md
+├── ARCHITECTURE.md
+├── FEATURES.md
+└── USAGE.md
+```
